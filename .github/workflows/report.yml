@@ -16,24 +16,23 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Install OpenVPN
+      - name: Configure OpenVPN
         run: |
           sudo apt update
           sudo apt install -y openvpn openvpn-systemd-resolved
-      - name: Config OpenVPN
-        run: |
-          echo "ovpn_username=$(cut -d',' -f1 <<< $(cut -d';' -f1 <<< ${{ secrets.USERS }}))" >> $GITHUB_ENV
-          echo "ovpn_password=$(cut -d',' -f2 <<< $(cut -d';' -f1 <<< ${{ secrets.USERS }}))" >> $GITHUB_ENV
+          echo "ovpn_username=$(python3 main.py gh-vu)" >> $GITHUB_ENV
+          echo "ovpn_password=$(python3 main.py gh-vp)" >> $GITHUB_ENV
       - name: Connect to VPN
         uses: "kota65535/github-openvpn-connect-action@v1"
         with:
           config_file: .github/vpn/config.ovpn
           username: ${{ env.ovpn_username }}
           password: ${{ env.ovpn_password }}
-      - name: Wait for a VPN connection
+      - name: Test a VPN connection
         timeout-minutes: 1
         run: until ping -c1 xk.autoisp.shu.edu.cn; do sleep 2; done
       - name: Report Start
+        if: always()
         env:
           users: ${{ secrets.USERS }}
           send: ${{ secrets.SEND }}
